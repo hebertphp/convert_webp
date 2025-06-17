@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Conversor para WebP 800x600</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1rem;
+      background: #f0f0f0;
+      max-width: 500px;
+      margin: auto;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 1rem;
+    }
+    input[type="file"] {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #info {
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background-color: #0066cc;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Converter Imagem para WebP 800x600</h2>
+
+  <input type="file" id="inputImagem" accept="image/*" />
+  <div id="info"></div>
+  <img id="imgPreview" alt="Imagem convertida aparecerá aqui" style="display:none" />
+  <br/>
+  <button id="btnSalvar" disabled>Salvar imagem convertida</button>
+
+  <script>
+    const inputImagem = document.getElementById('inputImagem');
+    const info = document.getElementById('info');
+    const imgPreview = document.getElementById('imgPreview');
+    const btnSalvar = document.getElementById('btnSalvar');
+
+    let imagemConvertidaBlob = null;
+
+    inputImagem.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return reset();
+
+      info.textContent = 'Processando...';
+      btnSalvar.disabled = true;
+      imgPreview.style.display = 'none';
+
+      try {
+        imagemConvertidaBlob = await reduzirParaWebP(file, 800, 600, 0.7);
+        
+        info.innerHTML = `
+          <p>Tamanho original: ${(file.size / 1024).toFixed(2)} KB</p>
+          <p>Tamanho convertido (WebP): ${(imagemConvertidaBlob.size / 1024).toFixed(2)} KB</p>
+        `;
+
+        const url = URL.createObjectURL(imagemConvertidaBlob);
+        imgPreview.src = url;
+        imgPreview.style.display = 'block';
+        btnSalvar.disabled = false;
+      } catch (err) {
+        info.textContent = 'Erro ao converter imagem: ' + err.message;
+      }
+    });
+
+    btnSalvar.addEventListener('click', () => {
+      if (!imagemConvertidaBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(imagemConvertidaBlob);
+      a.download = 'imagem-convertida.webp';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    function reset() {
+      info.textContent = '';
+      imgPreview.style.display = 'none';
+      btnSalvar.disabled = true;
+      imagemConvertidaBlob = null;
+    }
+
+    function reduzirParaWebP(file, maxWidth, maxHeight, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = e => {
+          img.onload = () => {
+            let { width, height } = img;
+
+            // Mantém a proporção
+            if (width > height) {
+              if (width > maxWidth) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = Math.round(width * (maxHeight / height));
+                height = maxHeight;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(blob => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Falha ao converter imagem para WebP'));
+              }
+            }, 'image/webp', quality);
+          };
+          img.onerror = () => reject(new Error('Erro ao carregar a imagem'));
+          img.src = e.target.result;
+        };
+
+        reader.onerror = () => reject(new Error('Erro ao ler o arquivo'));
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+
+</body>
+</html>
