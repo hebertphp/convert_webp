@@ -2,14 +2,14 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Conversor para WebP 800x600</title>
+  <title>Comparar Imagem Original e Convertida WebP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 1rem;
       background: #f0f0f0;
-      max-width: 500px;
+      max-width: 700px;
       margin: auto;
       text-align: center;
     }
@@ -20,9 +20,15 @@
       width: 100%;
       margin-bottom: 1rem;
     }
-    img {
-      max-width: 100%;
+    #imagens {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
       margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    #imagens img {
+      max-width: 48%;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
@@ -44,23 +50,40 @@
       background-color: #999;
       cursor: not-allowed;
     }
+    .img-label {
+      font-weight: bold;
+      margin-bottom: 0.2rem;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Converter Imagem para WebP 800x600</h2>
+  <h2>Converter Imagem para WebP 800x600 - Comparar Original x Convertida - V2</h2>
 
   <input type="file" id="inputImagem" accept="image/*" />
   <div id="info"></div>
-  <img id="imgPreview" alt="Imagem convertida aparecerá aqui" style="display:none" />
+
+  <div id="imagens" style="display:none;">
+    <div>
+      <div class="img-label">Imagem Original</div>
+      <img id="imgOriginal" alt="Imagem original" />
+    </div>
+    <div>
+      <div class="img-label">Imagem Convertida (WebP)</div>
+      <img id="imgConvertida" alt="Imagem convertida WebP" />
+    </div>
+  </div>
+
   <br/>
   <button id="btnSalvar" disabled>Salvar imagem convertida</button>
 
   <script>
     const inputImagem = document.getElementById('inputImagem');
     const info = document.getElementById('info');
-    const imgPreview = document.getElementById('imgPreview');
+    const imgOriginal = document.getElementById('imgOriginal');
+    const imgConvertida = document.getElementById('imgConvertida');
     const btnSalvar = document.getElementById('btnSalvar');
+    const containerImagens = document.getElementById('imagens');
 
     let imagemConvertidaBlob = null;
 
@@ -70,22 +93,29 @@
 
       info.textContent = 'Processando...';
       btnSalvar.disabled = true;
-      imgPreview.style.display = 'none';
+      containerImagens.style.display = 'none';
 
       try {
-        imagemConvertidaBlob = await reduzirParaWebP(file, 800, 600, 0.7);
-        
+        imagemConvertidaBlob = await reduzirParaWebP(file, 800, 600, 0.85); // qualidade maior
+
         info.innerHTML = `
           <p>Tamanho original: ${(file.size / 1024).toFixed(2)} KB</p>
           <p>Tamanho convertido (WebP): ${(imagemConvertidaBlob.size / 1024).toFixed(2)} KB</p>
         `;
 
-        const url = URL.createObjectURL(imagemConvertidaBlob);
-        imgPreview.src = url;
-        imgPreview.style.display = 'block';
+        // Mostrar imagem original
+        const urlOriginal = URL.createObjectURL(file);
+        imgOriginal.src = urlOriginal;
+
+        // Mostrar imagem convertida
+        const urlConvertida = URL.createObjectURL(imagemConvertidaBlob);
+        imgConvertida.src = urlConvertida;
+
+        containerImagens.style.display = 'flex';
         btnSalvar.disabled = false;
       } catch (err) {
         info.textContent = 'Erro ao converter imagem: ' + err.message;
+        reset();
       }
     });
 
@@ -101,8 +131,10 @@
 
     function reset() {
       info.textContent = '';
-      imgPreview.style.display = 'none';
+      containerImagens.style.display = 'none';
       btnSalvar.disabled = true;
+      imgOriginal.src = '';
+      imgConvertida.src = '';
       imagemConvertidaBlob = null;
     }
 
