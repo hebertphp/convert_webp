@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Comparar Imagem Original e Convertida WebP</title>
+  <title>Converter Imagem para WebP com Controle de Qualidade</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -16,9 +16,9 @@
     h2 {
       margin-bottom: 1rem;
     }
-    input[type="file"] {
+    input[type="file"], input[type="range"] {
       width: 100%;
-      margin-bottom: 1rem;
+      margin: 0.5rem 0 1rem 0;
     }
     #imagens {
       display: flex;
@@ -54,13 +54,27 @@
       font-weight: bold;
       margin-bottom: 0.2rem;
     }
+    label[for="qualidade"] {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+      text-align: left;
+    }
+    #qualidade-valor {
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Converter Imagem para WebP 800x600 - Comparar Original x Convertida - V2</h2>
+  <h2>Converter Imagem para WebP 800x600 - Controle de Qualidade - V3</h2>
 
   <input type="file" id="inputImagem" accept="image/*" />
+  
+  <label for="qualidade">Qualidade: <span id="qualidade-valor">0.85</span></label>
+  <input type="range" id="qualidade" min="0.5" max="1" step="0.05" value="0.85" />
+
   <div id="info"></div>
 
   <div id="imagens" style="display:none;">
@@ -74,11 +88,12 @@
     </div>
   </div>
 
-  <br/>
   <button id="btnSalvar" disabled>Salvar imagem convertida</button>
 
   <script>
     const inputImagem = document.getElementById('inputImagem');
+    const qualidadeSlider = document.getElementById('qualidade');
+    const qualidadeValor = document.getElementById('qualidade-valor');
     const info = document.getElementById('info');
     const imgOriginal = document.getElementById('imgOriginal');
     const imgConvertida = document.getElementById('imgConvertida');
@@ -86,25 +101,31 @@
     const containerImagens = document.getElementById('imagens');
 
     let imagemConvertidaBlob = null;
+    let arquivoOriginal = null;
 
-    inputImagem.addEventListener('change', async (event) => {
-      const file = event.target.files[0];
-      if (!file) return reset();
+    function atualizarQualidadeLabel() {
+      qualidadeValor.textContent = qualidadeSlider.value;
+    }
+
+    async function converterEExibir() {
+      if (!arquivoOriginal) return reset();
 
       info.textContent = 'Processando...';
       btnSalvar.disabled = true;
       containerImagens.style.display = 'none';
 
       try {
-        imagemConvertidaBlob = await reduzirParaWebP(file, 800, 600, 0.85); // qualidade maior
+        const qualidade = parseFloat(qualidadeSlider.value);
+        imagemConvertidaBlob = await reduzirParaWebP(arquivoOriginal, 800, 600, qualidade);
 
         info.innerHTML = `
-          <p>Tamanho original: ${(file.size / 1024).toFixed(2)} KB</p>
+          <p>Tamanho original: ${(arquivoOriginal.size / 1024).toFixed(2)} KB</p>
           <p>Tamanho convertido (WebP): ${(imagemConvertidaBlob.size / 1024).toFixed(2)} KB</p>
+          <p>Qualidade: ${qualidade}</p>
         `;
 
         // Mostrar imagem original
-        const urlOriginal = URL.createObjectURL(file);
+        const urlOriginal = URL.createObjectURL(arquivoOriginal);
         imgOriginal.src = urlOriginal;
 
         // Mostrar imagem convertida
@@ -117,6 +138,19 @@
         info.textContent = 'Erro ao converter imagem: ' + err.message;
         reset();
       }
+    }
+
+    inputImagem.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return reset();
+
+      arquivoOriginal = file;
+      converterEExibir();
+    });
+
+    qualidadeSlider.addEventListener('input', () => {
+      atualizarQualidadeLabel();
+      converterEExibir();
     });
 
     btnSalvar.addEventListener('click', () => {
@@ -136,6 +170,7 @@
       imgOriginal.src = '';
       imgConvertida.src = '';
       imagemConvertidaBlob = null;
+      arquivoOriginal = null;
     }
 
     function reduzirParaWebP(file, maxWidth, maxHeight, quality) {
@@ -183,6 +218,10 @@
         reader.readAsDataURL(file);
       });
     }
+
+    // Inicializa label da qualidade
+    atualizarQualidadeLabel();
+
   </script>
 
 </body>
